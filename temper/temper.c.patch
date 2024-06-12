@@ -1,0 +1,15 @@
+--- temper.c.org	2024-06-11 07:22:24.629113564 +0900
++++ temper.c	2024-06-11 07:24:12.508396415 +0900
+@@ -41,10 +41,10 @@
+ 		struct tm *utc;
+ 		time_t t;
+ 		t = time(NULL);
+-		utc = gmtime(&t);
++		utc = localtime(&t);
+ 		
+ 		char dt[80];
+-		strftime(dt, 80, "%d-%b-%Y %H:%M", utc);
++		strftime(dt, 80, "%Y-%m-%d %H:%M:%S", utc);
+ 
+ 		printf("%s,%f\n", dt, tempc);
+ 		fflush(stdout);
