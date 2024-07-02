@@ -30,6 +30,6 @@ WORKDIR /app
 
 COPY requirements.txt /app
 RUN pip install -r requirements.txt
-COPY temper-influxdb/main.py /app
+COPY temper_influxdb/*.py /app
 
 ENTRYPOINT [ "python", "main.py", "-d" ]
