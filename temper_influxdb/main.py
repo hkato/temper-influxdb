@@ -18,16 +18,39 @@ logging.basicConfig(level=logging.INFO, format=formatter)
 logger = logging.getLogger(__name__)
 
 # TEMPer
-TEMPER_PATH = "/usr/local/bin/temper"
+TEMPER_PATH = os.getenv("TEMPER_PATH", "/usr/local/bin/temper")
 temper_host_name = os.getenv("TEMPER_HOST_NAME", os.uname()[1])
 
-# InfluxDB
-url = os.environ["INFLUXDB_URL"]
-token = os.environ["INFLUXDB_TOKEN"]
-org = os.environ["INFLUXDB_ORG"]
-bucket = os.environ["INFLUXDB_BUCKET"]
-client = InfluxDBClient(url=url, token=token, org=org)
-write_api = client.write_api(write_options=SYNCHRONOUS)
+
+class InfluxDB:
+    """InfluxDB Client"""
+
+    url: str
+    token: str
+    org: str
+    bucket: str
+
+    def get_client(self) -> InfluxDBClient:
+        """Get InfluxDBClient"""
+        client = InfluxDBClient(url=self.url, token=self.token, org=self.org)
+
+        return client
+
+    def save_device_status(self, status: dict) -> None:
+        """TEMPerの測定温度をInfluxDBに保存する"""
+        if status["temperature"]:
+            p = (
+                Point(status["device_type"])
+                .tag("device_id", status["device_id"])
+                .field("temperature", float(status["temperature"]))
+            )
+
+            write_api = self.get_client().write_api(write_options=SYNCHRONOUS)
+
+            write_api.write(bucket=self.bucket, record=p)
+            logging.info(f"Saved: {status}")
+        else:
+            logging.error(f"TEMPer Error: {status}")
 
 
 class TEMPer:
@@ -38,7 +61,8 @@ class TEMPer:
         self.device_type = "TEMPer"
         self.device_name = "TEMPer via " + temper_host_name
 
-    def __get_temperature(self):
+    def get_temperature(self) -> float:
+        """Get temperature from temper binary"""
         try:
             result = subprocess.run(
                 [TEMPER_PATH],
@@ -55,9 +79,9 @@ class TEMPer:
 
         return temperature
 
-    def get_status(self):
+    def get_status(self) -> dict:
         """Get device status(temperature)"""
-        temperature = self.__get_temperature()
+        temperature = self.get_temperature()
 
         status = {
             "device_id": self.device_id,
@@ -69,61 +93,61 @@ class TEMPer:
         return status
 
 
-def save_device_status(status: dict):
-    """TEMPerの測定温度をInfluxDBに保存する"""
-    if status["temperature"]:
-        p = (
-            Point(status["device_type"])
-            .tag("device_id", status["device_id"])
-            .field("temperature", float(status["temperature"]))
-        )
-
-        write_api.write(bucket=bucket, record=p)
-        logging.info(f"Saved: {status}")
-    else:
-        logging.error(f"TEMPer Error: {status}")
-
-
-def task(temper):
+def task(influx, temper) -> None:
     """定期実行するタスク"""
     status = temper.get_status()
 
     try:
-        save_device_status(status)
+        influx.save_device_status(status)
     except Exception as e:
         logging.error(f"Save error: {e}")
 
 
-def daemon():
+def daemon(influx, time: int) -> None:
     """Daemon main"""
+    logger.info("Start")
     temper = TEMPer()
 
-    schedule.every(5).minutes.do(task, temper)
+    schedule.every(time).minutes.do(task, influx, temper)
 
     while True:
         schedule.run_pending()
         sleep(1)
 
 
-def main():
+def onetime(influx) -> None:
     """main"""
     temper = TEMPer()
-    task(temper)
+    task(influx, temper)
 
 
-def cli_main():
+def main():
+    """CLI main"""
     if not os.path.exists(TEMPER_PATH):
         print("Error: please install temper binary - https://github.com/bitplane/temper")
         sys.exit(1)
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--daemon", action="store_true", help="Daemon mode")
+    parser.add_argument("-t", "--time", default=5, help="Time interval", type=int)
+    parser.add_argument("--url", default=os.getenv("INFLUXDB_URL"), help="InfluxDB URL")
+    parser.add_argument("--token", default=os.getenv("INFLUXDB_TOKEN"), help="InfluxDB token")
+    parser.add_argument("--org", default=os.getenv("INFLUXDB_ORG"), help="InfluxDB organization")
+    parser.add_argument("--bucket", default=os.getenv("INFLUXDB_BUCKET"), help="InfluxDB bucket")
     args = parser.parse_args()
+
+    # InfluxDB
+    influx = InfluxDB()
+    influx.url = args.url
+    influx.token = args.token
+    influx.org = args.org
+    influx.bucket = args.bucket
+
     if args.daemon:
-        daemon()
+        daemon(influx, args.time)
     else:
-        main()
+        onetime(influx)
 
 
 if __name__ == "__main__":
-    cli_main()
+    main()

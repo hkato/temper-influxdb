@@ -7,14 +7,20 @@ license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 influxdb-client = "^1.44.0"
 schedule = "^1.2.2"
 
+[tool.poetry.group.dev.dependencies]
+pylint = "^3.2.5"
+black = "^24.4.2"
+
+[tool.black]
+line-length = 120
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-temper-influxdb = "temper_influxdb.main:cli_main"
+temper-influxdb = "temper_influxdb.main:main"
