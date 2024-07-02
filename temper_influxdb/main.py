@@ -13,8 +13,8 @@ from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 
 # Logging
-formatter = "[%(levelname)-8s] %(asctime)s %(funcName)s %(message)s"
-logging.basicConfig(level=logging.INFO, format=formatter)
+FORMATTER = "[%(levelname)-8s] %(asctime)s %(funcName)s %(message)s"
+logging.basicConfig(level=logging.INFO, format=FORMATTER)
 logger = logging.getLogger(__name__)
 
 # TEMPer
@@ -48,9 +48,9 @@ class InfluxDB:
             write_api = self.get_client().write_api(write_options=SYNCHRONOUS)
 
             write_api.write(bucket=self.bucket, record=p)
-            logging.info(f"Saved: {status}")
+            logging.info("Saved: %s", status)
         else:
-            logging.error(f"TEMPer Error: {status}")
+            logging.error("TEMPer Error: %s", status)
 
 
 class TEMPer:
@@ -74,7 +74,7 @@ class TEMPer:
             )
             temperature = result.stdout.split(",")[1].rstrip("\n")
         except Exception as e:
-            logging.error(f"Error: {e}")
+            logging.error("Error: %s", e)
             temperature = None
 
         return temperature
@@ -100,7 +100,7 @@ def task(influx, temper) -> None:
     try:
         influx.save_device_status(status)
     except Exception as e:
-        logging.error(f"Save error: {e}")
+        logging.error("Save error: %s", e)
 
 
 def daemon(influx, time: int) -> None:
