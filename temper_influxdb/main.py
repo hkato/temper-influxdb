@@ -111,9 +111,9 @@ def main():
     task(temper)
 
 
-if __name__ == "__main__":
+def cli_main():
     if not os.path.exists(TEMPER_PATH):
-        print("Error: please install temper https://github.com/bitplane/temper")
+        print("Error: please install temper binary - https://github.com/bitplane/temper")
         sys.exit(1)
 
     parser = argparse.ArgumentParser()
@@ -123,3 +123,7 @@ if __name__ == "__main__":
         daemon()
     else:
         main()
+
+
+if __name__ == "__main__":
+    cli_main()
