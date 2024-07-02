@@ -1,19 +1,4 @@
 services:
-  temper:
-    build:
-      context: ./temper
-      dockerfile: Dockerfile
-    container_name: temper
-    image: temper-influxdb
-    privileged: true
-    tty: true
-    environment:
-      - TEMPER_HOST_NAME=temper-host-1
-      - INFLUXDB_URL=http://influxdb:8086
-      - INFLUXDB_ORG=${INFLUXDB_ORG}
-      - INFLUXDB_BUCKET=${INFLUXDB_BUCKET}
-      - INFLUXDB_TOKEN=${INFLUXDB_TOKEN}
-
   influxdb:
     image: influxdb:2.7.6
     container_name: influxdb
@@ -34,7 +19,7 @@ services:
     container_name: grafana
     restart: unless-stopped
     ports:
-     - "3000:3000"
+      - "3000:3000"
     volumes:
       - grafana-storage:/var/lib/grafana
     depends_on:

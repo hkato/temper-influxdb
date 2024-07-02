@@ -1,0 +1,13 @@
+services:
+  temper:
+    build: .
+    container_name: temper
+    image: temper-influxdb
+    privileged: true
+    tty: true
+    environment:
+      - TEMPER_HOST_NAME=temper-host-1
+      - INFLUXDB_URL=http://influxdb:8086
+      - INFLUXDB_ORG=${INFLUXDB_ORG}
+      - INFLUXDB_BUCKET=${INFLUXDB_BUCKET}
+      - INFLUXDB_TOKEN=${INFLUXDB_TOKEN}

@@ -1,9 +1,11 @@
 """ Inserting TEMPerature into InfluxDB """
 
+import argparse
 import hashlib
 import logging
 import os
 import subprocess
+import sys
 from time import sleep
 
 import schedule
@@ -16,7 +18,8 @@ logging.basicConfig(level=logging.INFO, format=formatter)
 logger = logging.getLogger(__name__)
 
 # TEMPer
-temper_host_name = os.environ["TEMPER_HOST_NAME"]
+TEMPER_PATH = "/usr/local/bin/temper"
+temper_host_name = os.getenv("TEMPER_HOST_NAME", os.uname()[1])
 
 # InfluxDB
 url = os.environ["INFLUXDB_URL"]
@@ -25,10 +28,11 @@ org = os.environ["INFLUXDB_ORG"]
 bucket = os.environ["INFLUXDB_BUCKET"]
 client = InfluxDBClient(url=url, token=token, org=org)
 write_api = client.write_api(write_options=SYNCHRONOUS)
-query_api = client.query_api()
 
 
 class TEMPer:
+    """USB TEMPer device class"""
+
     def __init__(self):
         self.device_id = hashlib.md5(temper_host_name.encode()).hexdigest()
         self.device_type = "TEMPer"
@@ -37,11 +41,12 @@ class TEMPer:
     def __get_temperature(self):
         try:
             result = subprocess.run(
-                ["/usr/local/bin/temper"],
+                [TEMPER_PATH],
                 shell=True,
                 capture_output=True,
                 text=True,
                 timeout=5,
+                check=False,
             )
             temperature = result.stdout.split(",")[1].rstrip("\n")
         except Exception as e:
@@ -51,6 +56,7 @@ class TEMPer:
         return temperature
 
     def get_status(self):
+        """Get device status(temperature)"""
         temperature = self.__get_temperature()
 
         status = {
@@ -88,7 +94,8 @@ def task(temper):
         logging.error(f"Save error: {e}")
 
 
-if __name__ == "__main__":
+def daemon():
+    """Daemon main"""
     temper = TEMPer()
 
     schedule.every(5).minutes.do(task, temper)
@@ -96,3 +103,23 @@ if __name__ == "__main__":
     while True:
         schedule.run_pending()
         sleep(1)
+
+
+def main():
+    """main"""
+    temper = TEMPer()
+    task(temper)
+
+
+if __name__ == "__main__":
+    if not os.path.exists(TEMPER_PATH):
+        print("Error: please install temper https://github.com/bitplane/temper")
+        sys.exit(1)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-d", "--daemon", action="store_true", help="Daemon mode")
+    args = parser.parse_args()
+    if args.daemon:
+        daemon()
+    else:
+        main()

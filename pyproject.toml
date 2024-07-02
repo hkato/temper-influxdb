@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "temper-influxdb"
+version = "0.1.0"
+description = "Write TEMPerature data to InfluxDB"
+authors = ["Hideyuki KATO <hideyuki@kato.jp>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+influxdb-client = "^1.44.0"
+schedule = "^1.2.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
