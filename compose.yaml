@@ -1,6 +1,8 @@
 services:
   temper-influxdb:
     build: .
+    image: hkato/temper-influxdb
+    container_name: temper-influxdb
     privileged: true
     tty: true
     environment:
