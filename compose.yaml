@@ -1,8 +1,6 @@
 services:
-  temper:
+  temper-influxdb:
     build: .
-    container_name: temper
-    image: temper-influxdb
     privileged: true
     tty: true
     environment:
