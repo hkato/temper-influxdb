@@ -1,6 +1,7 @@
-""" Inserting TEMPerature into InfluxDB """
+""" Write USB TEMPerature data to InfluxDB """
 
 import argparse
+import dataclasses
 import hashlib
 import logging
 import os
@@ -22,42 +23,21 @@ TEMPER_PATH = os.getenv("TEMPER_PATH", "/usr/local/bin/temper")
 temper_host_name = os.getenv("TEMPER_HOST_NAME", os.uname()[1])
 
 
-class InfluxDB:
-    """InfluxDB Client"""
+@dataclasses.dataclass
+class InfluxDBAccess:
+    """InfluxDB access data"""
 
     url: str
     token: str
     org: str
     bucket: str
 
-    def get_client(self) -> InfluxDBClient:
-        """Get InfluxDBClient"""
-        client = InfluxDBClient(url=self.url, token=self.token, org=self.org)
-
-        return client
-
-    def save_device_status(self, status: dict) -> None:
-        """TEMPerの測定温度をInfluxDBに保存する"""
-        if status["temperature"]:
-            p = (
-                Point(status["device_type"])
-                .tag("device_id", status["device_id"])
-                .field("temperature", float(status["temperature"]))
-            )
-
-            write_api = self.get_client().write_api(write_options=SYNCHRONOUS)
-
-            write_api.write(bucket=self.bucket, record=p)
-            logging.info("Saved: %s", status)
-        else:
-            logging.error("TEMPer Error: %s", status)
-
 
 class TEMPer:
     """USB TEMPer device class"""
 
     def __init__(self):
-        self.device_id = hashlib.md5(temper_host_name.encode()).hexdigest()
+        self.device_id = hashlib.sha1(temper_host_name.encode()).hexdigest()[0:12].upper()
         self.device_type = "TEMPer"
         self.device_name = "TEMPer via " + temper_host_name
 
@@ -93,32 +73,27 @@ class TEMPer:
         return status
 
 
-def task(influx, temper) -> None:
+def task(influxdb_access, temper) -> None:
     """定期実行するタスク"""
     status = temper.get_status()
 
     try:
-        influx.save_device_status(status)
+        if status["temperature"]:
+            p = (
+                Point(status["device_type"])
+                .tag("device_id", status["device_id"])
+                .field("temperature", float(status["temperature"]))
+            )
+
+            client = InfluxDBClient(url=influxdb_access.url, token=influxdb_access.token, org=influxdb_access.org)
+            write_api = client.write_api(write_options=SYNCHRONOUS)
+            write_api.write(bucket=influxdb_access.bucket, record=p)
+            logging.info("Saved: %s", status)
+        else:
+            logging.error("TEMPer Error: %s", status)
+
     except Exception as e:
         logging.error("Save error: %s", e)
-
-
-def daemon(influx, time: int) -> None:
-    """Daemon main"""
-    logger.info("Start")
-    temper = TEMPer()
-
-    schedule.every(time).minutes.do(task, influx, temper)
-
-    while True:
-        schedule.run_pending()
-        sleep(1)
-
-
-def onetime(influx) -> None:
-    """main"""
-    temper = TEMPer()
-    task(influx, temper)
 
 
 def main():
@@ -136,17 +111,18 @@ def main():
     parser.add_argument("--bucket", default=os.getenv("INFLUXDB_BUCKET"), help="InfluxDB bucket")
     args = parser.parse_args()
 
-    # InfluxDB
-    influx = InfluxDB()
-    influx.url = args.url
-    influx.token = args.token
-    influx.org = args.org
-    influx.bucket = args.bucket
+    influxdb_access = InfluxDBAccess(args.url, args.token, args.org, args.bucket)
+
+    logger.info("Start")
+
+    temper = TEMPer()
+    task(influxdb_access, temper)
 
     if args.daemon:
-        daemon(influx, args.time)
-    else:
-        onetime(influx)
+        schedule.every(args.time).minutes.do(task, influxdb_access, temper)
+        while True:
+            schedule.run_pending()
+            sleep(1)
 
 
 if __name__ == "__main__":
