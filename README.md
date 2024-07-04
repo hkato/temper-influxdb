@@ -25,7 +25,7 @@ export INFLUXDB_TOKEN=your_token
 Run as daemon
 
 ```sh
-temper-influx -d
+temper-influxdb -d
 ```
 
 or command line options
@@ -46,7 +46,11 @@ options:
 ```
 
 ```sh
-temper-influx -d --url http://influxdb:8086 --org your_org --bucket your_bucket --token your_token
+temper-influxdb -d \
+    --url http://influxdb:8086 \
+    --org your_org \
+    --bucket your_bucket \
+    --token your_token
 ```
 
 Log message
