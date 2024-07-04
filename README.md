@@ -1,4 +1,4 @@
-# TEMPer - InfluxDB
+# TEMPer-InfluxDB
 
 Write USB TEMPerature data to InfluxDB
 
@@ -9,11 +9,27 @@ Write USB TEMPerature data to InfluxDB
 
 ## Usage
 
-Use command line options
+Set environmental variables
+
+```sh
+export INFLUXDB_URL=http://influxdb:8086
+export INFLUXDB_ORG=your_org
+export INFLUXDB_BUCKET=your_bucket
+export INFLUXDB_TOKEN=your_token
+```
+
+Run as daemon
+
+```sh
+temper-influx -d
+```
+
+or command line options
 
 ```sh
 $ temper-influxdb --help
-usage: temper-influxdb [-h] [-d] [-t TIME] [--url URL] [--token TOKEN] [--org ORG] [--bucket BUCKET]
+
+usage: main.py [-h] [-d] [-t TIME] [--url URL] [--token TOKEN] [--org ORG] [--bucket BUCKET]
 
 options:
   -h, --help            show this help message and exit
@@ -23,27 +39,18 @@ options:
   --token TOKEN         InfluxDB token
   --org ORG             InfluxDB organization
   --bucket BUCKET       InfluxDB bucket
-
-$ temper-influx -d --url http://influxdb:8086 --org your_org --bucket your_bucket --token your_token
 ```
 
-or environmental variables
-
 ```sh
-$ export INFLUXDB_URL=http://influxdb:8086
-$ export INFLUXDB_ORG=your_org
-$ export INFLUXDB_BUCKET=your_bucket
-$ export INFLUXDB_TOKEN=your_token
-
-$ temper-influx -d
+temper-influx -d --url http://influxdb:8086 --org your_org --bucket your_bucket --token your_token
 ```
 
 Log message
 
 ```sh
-[INFO    ] 2024-07-03 09:40:04,014 daemon Start
-[INFO    ] 2024-07-03 09:45:04,845 save_device_status Saved: {'device_id': 'e9d6d34f1c90d0e21270e2b3c3db76bc', 'device_name': 'TEMPer via temper-host-1', 'device_type': 'TEMPer', 'temperature': '27.696424'}
-[INFO    ] 2024-07-03 09:50:05,317 save_device_status Saved: {'device_id': 'e9d6d34f1c90d0e21270e2b3c3db76bc', 'device_name': 'TEMPer via temper-host-1', 'device_type': 'TEMPer', 'temperature': '27.696424'}
+[INFO    ] 2024-07-03 09:40:04,014 main Start
+[INFO    ] 2024-07-03 09:45:04,845 task Saved: {'device_id': 'FC54F0402DE6', 'device_name': 'TEMPer via temper-host-1', 'device_type': 'TEMPer', 'temperature': '27.696424'}
+[INFO    ] 2024-07-03 09:50:05,317 task Saved: {'device_id': 'FC54F0402DE6', 'device_name': 'TEMPer via temper-host-1', 'device_type': 'TEMPer', 'temperature': '27.696424'}
 ```
 
 ## Docker usage
@@ -51,15 +58,15 @@ Log message
 ### Create and update .env file
 
 ```sh
-$ cp .env.example .env
-$ vi .env
+cp .env.example .env
+vi .env
 ```
 
-### Start TEMPer service
+### Start TEMPer-InfluxDB service
 
 ```sh
-$ docker compose build
-$ docker compose up -d && docker compose logs -f
+docker compose build
+docker compose up -d && docker compose logs -f
 ```
 
 ## Grafana Influx query
@@ -71,4 +78,4 @@ from(bucket: "temper")    // your_bucket
   |> filter(fn: (r) => r["_field"] == "temperature")
 ```
 
-![Grafana Influx query](grafana-influx-query.png)
+![Grafana Influx query](images/grafana-influx-query.png)
