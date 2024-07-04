@@ -2,6 +2,10 @@
 
 Write USB TEMPerature data to InfluxDB
 
+## Overview
+
+![Overview](images/overview.png)
+
 ## Requirements
 
 - USB TEMPer device ([amazon.com](https://www.amazon.com/dp/B08XLS3GLF/)) ([amazon.co.jp](https://www.amazon.co.jp/dp/B004FI1570/))
